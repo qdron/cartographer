@@ -1,2 +1,2 @@
 # cartographer
-Bot for cartographers 
+Bot to help cartographers on the discrod server.
