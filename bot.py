@@ -119,14 +119,15 @@ async def on_ready():
     logger.info("--- Logged in as '%s'" % bot.user.name )
 
 @bot.command(name='правила')
-async def search_in_rules(ctx, arg):
+async def search_in_rules(ctx, *args):
     if ctx.channel.id != INFO_CHANNEL_ID:
         return
 
-    logger.info("Search in mapping rules. Request: '%s'" % arg)
+    logger.info("Search in mapping rules. Request: '%s'" %  ' '.join(args))
     base_url = 'https://yandex.ru'
     URL = 'https://yandex.ru/support/search-results/?service=nmaps&query='
-    search = "+".join(arg.split())
+    search = "+".join(args)
+    logger.info("search url: %s" % (URL + search))
     page = requests.get(URL + search)
     soup = BeautifulSoup(page.content, 'html.parser')
     
