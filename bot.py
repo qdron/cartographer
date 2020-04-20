@@ -16,27 +16,34 @@ logger.setLevel(logging.INFO)
 handler = logging.FileHandler(filename='cartographer.log', encoding='utf-8', mode='a')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
+logger.info('--- start bot ---\n')
 
 # Get params
 TOKEN = os.getenv('CARTOGRAPHER_TOKEN')
 if TOKEN == None:
+    print("Token is not setted")
     logger.error("Token is not setted")
     exit()
 
-CHANNEL_ID = os.getenv("CARTOGRAPHER_CHANNEL_ID")
-if CHANNEL_ID == None:
-    logger.error("Channel id is not setted")
+NEWS_CHANNEL_ID = os.getenv("CARTOGRAPHER_NEWS_CHANNEL_ID")
+if NEWS_CHANNEL_ID == None:
+    print("News channel id is not setted")
+    logger.error("News channel id is not setted")
     exit()
-CHANNEL_ID = int(CHANNEL_ID)
+NEWS_CHANNEL_ID = int(NEWS_CHANNEL_ID)
 
-# Client
-client = discord.Client()
+INFO_CHANNEL_ID = os.getenv("CARTOGRAPHER_INFO_CHANNEL_ID")
+if INFO_CHANNEL_ID == None:
+    print("Info channel id is not setted")
+    logger.error("Info channel id is not setted")
+    exit()
+INFO_CHANNEL_ID = int(INFO_CHANNEL_ID)
 
 # Bot 
 bot = commands.Bot(command_prefix='!')
 
 class MyCog(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self):
         self.bot = bot
         self.config_file_path = "cartographer.json"
         self.config = {
@@ -50,8 +57,8 @@ class MyCog(commands.Cog):
     @tasks.loop(minutes=5.0)
     async def news_updater(self):
         logger.info("Udpating news from 'Клуб народкой карты'")
-        channel = client.get_channel(CHANNEL_ID)
-        if channel == None:
+        news_channel = bot.get_channel(NEWS_CHANNEL_ID)
+        if news_channel == None:
             return
         base_url = 'https://yandex.ru'
         URL = 'https://yandex.ru/blog/narod-karta'
@@ -81,7 +88,7 @@ class MyCog(commands.Cog):
         logger.debug("New posts count: %d" % len(new_posts))
 
         for em in new_posts:
-            await channel.send(embed=em)
+            await news_channel.send(embed=em)
             self.config["last_post"] = em.url
             logger.debug(" - %s" % em.title)
 
@@ -91,7 +98,7 @@ class MyCog(commands.Cog):
 
     @news_updater.before_loop
     async def before_news_updater(self):
-        await client.wait_until_ready()
+        await bot.wait_until_ready()
 
     def save(self):
         with open(self.config_file_path, "w") as write_file:
@@ -105,10 +112,36 @@ class MyCog(commands.Cog):
         with open(self.config_file_path, "r") as read_file:
             self.config = json.load(read_file)
 
-@client.event
+@bot.event
 async def on_ready():
-    logger.info('--- Logged in as "%s"' % client.user.name )
+    logger.info('--- Logged in as "%s"' % bot.user.name )
+    print(bot.user.name)
 
-bot.add_cog(MyCog(bot))
-client.run(TOKEN)
+@bot.command(name='правила')
+async def search_in_rules(ctx, arg):
+    if ctx.channel.id != INFO_CHANNEL_ID:
+        return
 
+    logger.info("Search in mapping rules. Request: '%s'" % arg)
+    base_url = 'https://yandex.ru'
+    URL = 'https://yandex.ru/support/search-results/?service=nmaps&query='
+    search = "+".join(arg.split())
+    page = requests.get(URL + search)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    
+    count = 5
+    search_results = soup.find_all(class_='results__item')
+    logger.info("Getted result")
+    await ctx.send(content='Получены результаты поиска выдаю не больше %d:' % count)
+    for result in search_results:
+        em = discord.Embed()
+        em.title = result.find('div', class_='results__title').text
+        em.url = base_url + result['data-document']
+        em.description = result.find('div', class_='results__text').text
+        await ctx.send(embed=em)
+        count -= 1
+        if count == 0:
+            break
+
+bot.add_cog(MyCog())
+bot.run(TOKEN)
