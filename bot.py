@@ -116,8 +116,7 @@ class MyCog(commands.Cog):
 
 @bot.event
 async def on_ready():
-    logger.info('--- Logged in as "%s"' % bot.user.name )
-    print(bot.user.name)
+    logger.info("--- Logged in as '%s'" % bot.user.name )
 
 @bot.command(name='правила')
 async def search_in_rules(ctx, arg):
