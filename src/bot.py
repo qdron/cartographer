@@ -15,7 +15,7 @@ from discord.ext import tasks, commands
 # Logger
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename='cartographer.log', encoding='utf-8', mode='a')
+handler = logging.FileHandler(filename='/var/log/cartographer.log', encoding='utf-8', mode='a')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 logger.info('--- start bot ---\n')
@@ -47,7 +47,7 @@ bot = commands.Bot(command_prefix='!')
 class MyCog(commands.Cog):
     def __init__(self):
         self.bot = bot
-        self.config_file_path = "cartographer.json"
+        self.config_file_path = "/etc/app/cartographer.json"
         self.config = {
             "last_post": ""
         }

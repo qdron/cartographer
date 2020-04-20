@@ -1,0 +1,12 @@
+version: '3'
+services: 
+    bot:
+        build: .
+        volumes: 
+            - ./src:/usr/src/app
+            - ./etc:/etc/app
+            - ./log:/var/log
+        environment:  
+            - CARTOGRAPHER_TOKEN
+            - CARTOGRAPHER_NEWS_CHANNEL_ID
+            - CARTOGRAPHER_INFO_CHANNEL_ID
