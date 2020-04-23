@@ -20,37 +20,43 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 logger.info('--- start bot ---\n')
 
-# Get params
+# Get token
 TOKEN = os.getenv('CARTOGRAPHER_TOKEN')
-if TOKEN == None:
+if TOKEN == None:   
     print("Token is not setted")
     logger.error("Token is not setted")
     exit()
 
-NEWS_CHANNEL_ID = os.getenv("CARTOGRAPHER_NEWS_CHANNEL_ID")
-if NEWS_CHANNEL_ID == None:
-    print("News channel id is not setted")
-    logger.error("News channel id is not setted")
-    exit()
-NEWS_CHANNEL_ID = int(NEWS_CHANNEL_ID)
-
-INFO_CHANNEL_ID = os.getenv("CARTOGRAPHER_INFO_CHANNEL_ID")
-if INFO_CHANNEL_ID == None:
-    print("Info channel id is not setted")
-    logger.error("Info channel id is not setted")
-    exit()
-INFO_CHANNEL_ID = int(INFO_CHANNEL_ID)
-
 # Bot 
 bot = commands.Bot(command_prefix='!')
+
+config_file_path = "/etc/app/cartographer.json"
+config = {
+    "last_post": "",
+    "news_channel_id": 0,
+    "info_channel_id": 0,
+    "guild": 0,
+    "role_mapmaker": 0,
+}           
+
+def save():
+    with open(config_file_path, "w") as write_file:
+        json.dump(config, write_file, indent=4)
+        logger.info("Config saved")
+
+def load():
+    if not os.path.exists(config_file_path):
+        logger.warning('Config file not found. Using default values')
+        return
+
+    with open(config_file_path, "r") as read_file:
+        global config
+        config = json.load(read_file)
+        logger.info("Config loaded")
 
 class MyCog(commands.Cog):
     def __init__(self):
         self.bot = bot
-        self.config_file_path = "/etc/app/cartographer.json"
-        self.config = {
-            "last_post": ""
-        }
         self.news_updater.start()
 
     def cog_unload(self):
@@ -59,7 +65,7 @@ class MyCog(commands.Cog):
     @tasks.loop(minutes=5.0)
     async def news_updater(self):
         logger.info("Udpating news from 'Клуб народкой карты'")
-        news_channel = bot.get_channel(NEWS_CHANNEL_ID)
+        news_channel = bot.get_channel(config["news_channel_id"])
         if news_channel == None:
             return
         base_url = 'https://yandex.ru'
@@ -67,8 +73,7 @@ class MyCog(commands.Cog):
         page = requests.get(URL)
         soup = BeautifulSoup(page.content, 'html.parser')
         posts = []
-        self.load()    
-        logger.info("Last loaded post: %s" % self.config["last_post"])
+        logger.info("Last loaded post: %s" % config["last_post"])
 
         for post in soup.find_all(class_='b-post_yablogs-club _init'):
             em = discord.Embed()
@@ -83,7 +88,7 @@ class MyCog(commands.Cog):
         new_posts = []
         for em in posts:
             new_posts.append(em)
-            if self.config["last_post"] == em.url:
+            if config["last_post"] == em.url:
                 new_posts.clear()
                 logger.debug("Finded last published post '%s'. Cleanup list." % em.title)
 
@@ -91,36 +96,43 @@ class MyCog(commands.Cog):
 
         for em in new_posts:
             await news_channel.send(embed=em)
-            self.config["last_post"] = em.url
+            config["last_post"] = em.url
             logger.debug(" - %s" % em.title)
 
         logger.info("List new post updated")
 
-        self.save()
+        save()
 
     @news_updater.before_loop
     async def before_news_updater(self):
-        await bot.wait_until_ready()
-
-    def save(self):
-        with open(self.config_file_path, "w") as write_file:
-            json.dump(self.config, write_file, indent=4)
-
-    def load(self):
-        if not os.path.exists(self.config_file_path):
-            logger.warning('Config file not found. Using default values')
-            return
-
-        with open(self.config_file_path, "r") as read_file:
-            self.config = json.load(read_file)
+        await bot.wait_until_ready()   
 
 @bot.event
 async def on_ready():
     logger.info("--- Logged in as '%s'" % bot.user.name )
 
+@bot.event
+async def on_member_join(member):
+    logger.info("New member: '%s'" % member.display_name)
+    server_id = int(config["guild"])
+    guild = bot.get_guild(server_id)
+    if guild == None:
+        logger.error("Get guild failed")
+        return 
+    role_for_newbie = guild.get_role(config["newbie_role"])
+    if role_for_newbie == None:
+        logger.error("Get role failed")
+        return
+    try:
+        await member.add_roles(role_for_newbie, atomic=True)
+    except Exception as ex:
+        logger.error("Error on add roles. {0}".format(ex))
+    else:
+        logger.info("Member '%s' assigned to role: '%s'" % (member.name, role_for_newbie.name))
+
 @bot.command(name='правила')
 async def search_in_rules(ctx, *args):
-    if ctx.channel.id != INFO_CHANNEL_ID:
+    if ctx.channel.id != config["info_channel_id"]:
         return
 
     logger.info("Search in mapping rules. Request: '%s'" %  ' '.join(args))
@@ -145,5 +157,8 @@ async def search_in_rules(ctx, *args):
         if count == 0:
             break
 
-bot.add_cog(MyCog())
-bot.run(TOKEN)
+if __name__ == "__main__":
+    load()
+    bot.add_cog(MyCog())
+    bot.run(TOKEN)
+    save()
