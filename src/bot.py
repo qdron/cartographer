@@ -35,6 +35,7 @@ config = {
     "last_post": "",
     "news_channel_id": 0,
     "info_channel_id": 0,
+    "info_channel_id_EN": 0,
     "guild": 0,
     "role_mapmaker": 0,
     "test_channel_id": 0,
@@ -112,24 +113,24 @@ class MyCog(commands.Cog):
 async def on_ready():
     logger.info("--- Logged in as '%s'" % bot.user.name )
 
-@bot.event
-async def on_member_join(member):
-    logger.info("New member: '%s'" % member.display_name)
-    server_id = int(config["guild"])
-    guild = bot.get_guild(server_id)
-    if guild == None:
-        logger.error("Get guild failed")
-        return 
-    role_for_newbie = guild.get_role(config["newbie_role"])
-    if role_for_newbie == None:
-        logger.error("Get role failed")
-        return
-    try:
-        await member.add_roles(role_for_newbie, atomic=True)
-    except Exception as ex:
-        logger.error("Error on add roles. {0}".format(ex))
-    else:
-        logger.info("Member '%s' assigned to role: '%s'" % (member.name, role_for_newbie.name))
+# @bot.event
+# async def on_member_join(member):
+#     logger.info("New member: '%s'" % member.display_name)
+#     server_id = int(config["guild"])
+#     guild = bot.get_guild(server_id)
+#     if guild == None:
+#         logger.error("Get guild failed")
+#         return 
+#     role_for_newbie = guild.get_role(config["newbie_role"])
+#     if role_for_newbie == None:
+#         logger.error("Get role failed")
+#         return
+#     try:
+#         await member.add_roles(role_for_newbie, atomic=True)
+#     except Exception as ex:
+#         logger.error("Error on add roles. {0}".format(ex))
+#     else:
+#         logger.info("Member '%s' assigned to role: '%s'" % (member.name, role_for_newbie.name))
 
 @bot.command(name='правила')
 async def search_in_rules(ctx, *args):
@@ -165,7 +166,7 @@ async def search_in_rules(ctx, *args):
 
 @bot.command(name='rules')
 async def search_in_rules(ctx, *args):
-    if ctx.channel.id != config["info_channel_id"]:
+    if ctx.channel.id != config["info_channel_id_EN"]:
         return
 
     logger.info("Search in mapping rules. Request: '%s'" %  ' '.join(args))
