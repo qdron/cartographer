@@ -7,6 +7,4 @@ services:
             - ./etc:/etc/app
             - ./log:/var/log
         environment:  
-            - CARTOGRAPHER_TOKEN
-            - CARTOGRAPHER_NEWS_CHANNEL_ID
-            - CARTOGRAPHER_INFO_CHANNEL_ID
+            - CARTOGRAPHER_TOKEN=${CARTOGRAPHER_TOKEN}
