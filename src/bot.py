@@ -37,6 +37,7 @@ config = {
     "info_channel_id": 0,
     "guild": 0,
     "role_mapmaker": 0,
+    "test_channel_id": 0,
 }           
 
 def save():
@@ -132,7 +133,7 @@ async def on_member_join(member):
 
 @bot.command(name='правила')
 async def search_in_rules(ctx, *args):
-    if ctx.channel.id != config["info_channel_id"]:
+    if ctx.channel.id != config["info_channel_id"] and ctx.channel.id != ["test_channel_id"]:
         return
 
     logger.info("Search in mapping rules. Request: '%s'" %  ' '.join(args))
@@ -146,7 +147,12 @@ async def search_in_rules(ctx, *args):
     count = 5
     search_results = soup.find_all(class_='results__item')
     logger.info("Getted result")
-    await ctx.send(content='Получены результаты поиска выдаю не больше %d:' % count)
+
+    if (len(search_results) == 0):
+        await ctx.send(content='Ничего не нашел :face_with_monocle: Попробуйте составить запрос по-другому')
+        return
+
+    await ctx.send(content='Вот, что мне удалось найти в Справке (показываю не более %d результатов):' % count)
     for result in search_results:
         em = discord.Embed()
         em.title = result.find('div', class_='results__title').text
