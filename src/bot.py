@@ -54,7 +54,7 @@ def load():
         config = json.load(read_file)
         logger.info("Config loaded")
 
-class MyCog(commands.Cog):
+class MyCog(commands.Cog):  
     def __init__(self):
         self.bot = bot
         self.news_updater.start()
@@ -156,6 +156,38 @@ async def search_in_rules(ctx, *args):
         count -= 1
         if count == 0:
             break
+
+@bot.command(name='rules')
+async def search_in_rules(ctx, *args):
+    if ctx.channel.id != config["info_channel_id"]:
+        return
+
+    logger.info("Search in mapping rules. Request: '%s'" %  ' '.join(args))
+    base_url = 'https://yandex.com'
+    URL = 'https://yandex.com/support/search-results/?service=mapeditor&query='
+    search = "+".join(args)
+    logger.info("search url: %s" % (URL + search))
+    page = requests.get(URL + search)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    
+    count = 5
+    search_results = soup.find_all(class_='results__item')
+    logger.info("Getted result")
+    if (len(search_results) == 0):
+        await ctx.send(content="I didn't find anything :man_shrugging: Try to write your request differently")
+        return    
+
+    await ctx.send(content="Here's what I found in the Support (there are no more than %d results):" % count)
+    for result in search_results:
+        em = discord.Embed()
+        em.title = result.find('div', class_='results__title').text
+        em.url = base_url + result['data-document']
+        em.description = result.find('div', class_='results__text').text
+        await ctx.send(embed=em)
+        count -= 1
+        if count == 0:
+            break
+
 
 if __name__ == "__main__":
     load()
