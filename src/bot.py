@@ -18,7 +18,8 @@ logger.setLevel(logging.INFO)
 handler = logging.FileHandler(filename='/var/log/cartographer.log', encoding='utf-8', mode='a')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
-logger.info('--- start bot ---\n')
+logger.info('\n')
+logger.info('--- start bot ---')
 
 # Get token
 TOKEN = os.getenv('CARTOGRAPHER_TOKEN')
@@ -33,7 +34,9 @@ bot = commands.Bot(command_prefix='!')
 config_file_path = "/etc/app/cartographer.json"
 config = {
     "last_post": "",
+    "last_post_EN": "",
     "news_channel_id": 0,
+    "news_channel_id_EN": 0,
     "info_channel_id": 0,
     "info_channel_id_EN": 0,
     "guild": 0,
@@ -55,14 +58,17 @@ def load():
         global config
         config = json.load(read_file)
         logger.info("Config loaded")
+        logger.info(config)
 
 class MyCog(commands.Cog):  
     def __init__(self):
         self.bot = bot
         self.news_updater.start()
+        self.news_updater_en.start()
 
     def cog_unload(self):
         self.news_updater.cancel()
+        self.news_updater_en.cancel()
 
     @tasks.loop(minutes=5.0)
     async def news_updater(self):
@@ -105,8 +111,69 @@ class MyCog(commands.Cog):
 
         save()
 
+    @tasks.loop(hours=3.0)
+    async def news_updater_en(self):
+        logger.info("Udpating news from 'Changes and additions to the Mapping Rules'" )
+        news_channel_en = bot.get_channel(config["news_channel_id_EN"])        
+        if news_channel_en == None:
+            logger.error("Unspecified en news channel")
+            return
+        base_url = 'https://yandex.com'
+        URL = 'https://yandex.com/support/mapeditor/reliz.html'
+        page = requests.get(URL)
+        soup = BeautifulSoup(page.content, 'html.parser')
+        posts = []
+        count = 10
+        logger.info("Last loaded post: %s" % config["last_post_EN"])
+
+        for post in soup.find_all(class_='doc-c-list'):
+            if (post.name == 'dt'):
+                print(post.text)
+                em = discord.Embed()
+                em.title = post.text
+                
+            
+            if (post.name == 'dd'):
+                count = count - 1
+                lines = []                
+                for paragraph in post.find_all('p'):
+                    text = paragraph.text
+                    for link in paragraph.find_all('a'):
+                        prepared_link = "[" + link.text + "](" + base_url + link['href'] + ")"
+                        text = text.replace(link.text, prepared_link)
+                    lines.append(text)
+
+                em.description = "\n".join(lines)
+                posts.insert(0, em)
+
+            if count == 0:
+                break
+
+
+        new_posts = []
+        for em in posts:
+            new_posts.append(em)
+            if config["last_post_EN"] == em.title:
+                new_posts.clear()
+                logger.debug("Finded last published post '%s'. Cleanup list." % em.title)
+
+        logger.debug("New posts count: %d" % len(new_posts))
+
+        for em in new_posts:
+            await news_channel_en.send(embed=em)
+            config["last_post_EN"] = em.title
+            logger.debug(" - %s" % em.title)
+
+        logger.info("List new post updated (EN)")
+
+        save()
+
     @news_updater.before_loop
     async def before_news_updater(self):
+        await bot.wait_until_ready()   
+
+    @news_updater_en.before_loop
+    async def before_new_updater_en(self):
         await bot.wait_until_ready()   
 
 @bot.event
