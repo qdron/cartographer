@@ -262,7 +262,7 @@ async def search_in_rules_en(ctx, *args):
         if count == 0:
             break
 
-@bot.command(name='kurallari')
+@bot.command(name='kuralları', aliases=['kurallari'])
 async def search_in_rules_tk(ctx, *args):
     if ctx.channel.id != config["info_channel_id_EN"]:
         return
