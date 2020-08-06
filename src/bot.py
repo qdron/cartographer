@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*- 
 import discord
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import requests
 import json
 import os.path
@@ -15,8 +16,9 @@ from discord.ext import tasks, commands
 # Logger
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename='/var/log/cartographer.log', encoding='utf-8', mode='a')
+handler = TimedRotatingFileHandler(filename='/var/log/cartographer.log', encoding='utf-8', when='midnight', backupCount=180)
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+handler.suffix = '%Y-%m-%d'
 logger.addHandler(handler)
 logger.info('\n')
 logger.info('--- start bot ---')
