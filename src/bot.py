@@ -313,10 +313,10 @@ async def search_in_rules_fr(ctx, *args):
     search_results = soup.find_all(class_='results__item')
     logger.info("Getted result")
     if (len(search_results) == 0):
-        await ctx.send(content="I didn't find anything :man_shrugging: Try to write your request differently")
+        await ctx.send(content="Je n'ai rien trouvé 🤷‍♂️ Essayez d'écrire votre requête différemment")
         return    
 
-    await ctx.send(content="Here's what I found in the Support (there are no more than %d results):" % count)
+    await ctx.send(content="Voici ce que j'ai trouvé dans le Support (il n'y a pas plus de %d résultats) :" % count)
     for result in search_results:
         em = discord.Embed()
         em.title = result.find('div', class_='results__title').text
