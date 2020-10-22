@@ -12,6 +12,8 @@ import asyncio
 from bs4 import BeautifulSoup
 from threading import Thread
 from discord.ext import tasks, commands
+import utm
+from urllib.parse import urlparse
 
 # Logger
 logger = logging.getLogger('discord')
@@ -232,6 +234,44 @@ async def search_in_rules(ctx, *args):
         count -= 1
         if count == 0:
             break
+
+@bot.command(name='где')
+async def convert_coordinates(ctx, *args):
+    if ctx.channel.id == config["info_channel_id"] and ctx.channel.id != ["test_channel_id"]:
+        return
+    
+    logger.info("Convert link. Request: '%s'" % ' '.join(args))
+    # https://kso.etjanster.lantmateriet.se/?e=456386&n=6405405&z=13
+    # https://n.maps.yandex.ru/#!/?z=16&ll=14.266455%2C57.788546&l=nk%23map
+    link = args[0]
+    if (len(link) == 0):
+        return
+    
+    if link[:38] == 'https://kso.etjanster.lantmateriet.se/':
+        url = urlparse(link)
+        q = url.query.split('&')
+
+        e = 0
+        n = 0
+        z = 13
+        lat = float(0)
+        lon = float(0)
+        for s in q:
+            v = s.split('=')
+            key = v[0]
+            value = v[1]
+            if key == 'e':
+                e = int(value)
+            if key == 'n':
+                n = int(value)
+            if key == 'z':
+                z = int(value) + 4
+        
+        lat, lon = utm.to_latlon(e, n, 33, 'V')
+        # https://n.maps.yandex.ru/#!/?z=16&ll=14.266455%2C57.788546&l=nk%23map
+        reulst_link = "https://n.maps.yandex.ru/#!/?z={:d}&ll={:.6f}%2C{:.6f}&l=nk%23map".format(z, lon, lat)
+        await ctx.send(content=reulst_link)
+
 
 @bot.command(name='rules')
 async def search_in_rules_en(ctx, *args):
