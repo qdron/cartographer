@@ -235,7 +235,7 @@ async def search_in_rules(ctx, *args):
         if count == 0:
             break
 
-@bot.command(name='где')
+@bot.command(name='гдеШвеция')
 async def convert_coordinates(ctx, *args):
     if ctx.channel.id == config["info_channel_id"] and ctx.channel.id != ["test_channel_id"]:
         return
@@ -247,7 +247,8 @@ async def convert_coordinates(ctx, *args):
     if (len(link) == 0):
         return
     
-    if link[:38] == 'https://kso.etjanster.lantmateriet.se/':
+    prefix = 'https://n.maps.yandex.ru/#!'
+    if link[:len(prefix)] == prefix:
         url = urlparse(link)
         q = url.query.split('&')
 
@@ -256,21 +257,22 @@ async def convert_coordinates(ctx, *args):
         z = 13
         lat = float(0)
         lon = float(0)
+        ll = ""
         for s in q:
             v = s.split('=')
             key = v[0]
             value = v[1]
-            if key == 'e':
-                e = int(value)
-            if key == 'n':
-                n = int(value)
+            if key == 'll':
+                ll = value.split("%2C")
             if key == 'z':
-                z = int(value) + 4
+                z = int(value) - 4
+
+        lon = float(ll[0])
+        lat = float(ll[1])
         
-        lat, lon = utm.to_latlon(e, n, 33, 'V')
-        # https://n.maps.yandex.ru/#!/?z=16&ll=14.266455%2C57.788546&l=nk%23map
-        reulst_link = "https://n.maps.yandex.ru/#!/?z={:d}&ll={:.6f}%2C{:.6f}&l=nk%23map".format(z, lon, lat)
-        await ctx.send(content=reulst_link)
+        e, n, d, s = utm.from_latlon(lat, lon)
+        result_link = "https://kso.etjanster.lantmateriet.se/?e={:d}&n={:d}&z={:d}".format(int(e), int(n), z)
+        await ctx.send(content=result_link)
 
 
 @bot.command(name='rules')
