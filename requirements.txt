@@ -2,4 +2,3 @@ discord
 bs4
 requests
 utm
-urllib
