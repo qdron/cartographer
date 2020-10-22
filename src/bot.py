@@ -245,10 +245,11 @@ async def convert_coordinates(ctx, *args):
     # https://n.maps.yandex.ru/#!/?z=16&ll=14.266455%2C57.788546&l=nk%23map
     link = args[0]
     if (len(link) == 0):
+        logger.info("Conveted link is empty")
         return
     
     prefix = 'https://n.maps.yandex.ru/#!'
-    if link[:len(prefix)] == prefix:
+    if link.find(prefix, 0) == 0:
         url = urlparse(link)
         q = url.query.split('&')
 
@@ -273,7 +274,8 @@ async def convert_coordinates(ctx, *args):
         e, n, d, s = utm.from_latlon(lat, lon)
         result_link = "https://kso.etjanster.lantmateriet.se/?e={:d}&n={:d}&z={:d}".format(int(e), int(n), z)
         await ctx.send(content=result_link)
-
+    
+    logger.info("Convet done")
 
 @bot.command(name='rules')
 async def search_in_rules_en(ctx, *args):
