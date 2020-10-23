@@ -216,7 +216,7 @@ async def search_in_rules(ctx, *args):
 
 @bot.command(name='гдеШвеция')
 async def convert_coordinates(ctx, *args):
-    if ctx.channel.id == config["info_channel_id"] and ctx.channel.id != ["test_channel_id"]:
+    if ctx.channel.id != config["info_channel_id"] and ctx.channel.id != ["test_channel_id"]:
         return
     
     logger.info("Convert link. Request: '%s'" % ' '.join(args))
